@@ -1,0 +1,75 @@
+version: 2
+ethernets:
+  ens3:
+    match:
+        name: ens3
+    set-name: ens3
+    dhcp4: false
+  %{ if br_pxe != "" }
+  ens5:
+    match:
+        name: ens5
+    set-name: ens5
+    dhcp4: false
+  %{ endif }
+  br-pxe:
+    match:
+      name: br-pxe
+    addresses:
+      - ${br_pxe}/22
+    optional: true
+bonds:
+  bond0:
+    interfaces: [ens3]
+    dhcp4: true
+    addresses:
+            - 10.200.0.100/24
+    mtu: 9000
+    parameters:
+      mode: active-backup
+      min-links: 1
+bridges:
+  br-mgmt:
+    interfaces: [mgmt-vlan]
+    dhcp4: false
+    addresses:
+            - ${br_mgmt}/22
+            - 172.29.236.100/22
+    parameters:
+            stp: true
+  %{ if br_ovs != "" }
+  br-ovs:
+    interfaces: [ovs-vlan]
+    dhcp4: false
+    mtu: 9000
+    addresses:
+            - ${br_ovs}/22
+    parameters:
+            stp: true
+  %{ endif }
+  %{ if br_storage != "" }
+  br-storage:
+    interfaces: [storage-vlan]
+    dhcp4: false
+    mtu: 9000
+    addresses:
+            - ${br_storage}/22
+    parameters:
+            stp: true
+  %{ endif }
+vlans:
+  mgmt-vlan:
+    id: 100
+    link: bond0
+  %{ if br_ovs != ""}
+  ovs-vlan:
+    id: 101
+    link: bond0
+    mtu: 9000
+  %{ endif }
+  %{ if br_storage != "" }
+  storage-vlan:
+    id: 102
+    link: bond0
+    mtu: 9000
+  %{ endif }

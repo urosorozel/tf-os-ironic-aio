@@ -1,0 +1,63 @@
+---
+
+controller_hosts: &controller_hosts
+  controller1:
+    ip: 172.29.236.11 
+    no_containers: true
+    container_vars:
+      nova_virt_type: ironic
+
+haproxy_hosts:
+  *controller_hosts
+
+log_hosts:
+  *controller_hosts
+
+repo-infra_hosts:
+  *controller_hosts
+
+shared-infra_hosts:
+  *controller_hosts
+
+os-infra_hosts:
+  *controller_hosts
+
+identity_hosts:
+  *controller_hosts
+
+#storage-infra_hosts:
+#  *controller_hosts
+
+database_hosts:
+  *controller_hosts
+
+image_hosts:
+  *controller_hosts
+
+compute-infra_hosts:
+  *controller_hosts
+
+#orchestration_hosts:
+#  *controller_hosts
+#
+#dashboard_hosts:
+#  *controller_hosts
+
+ironic-infra_hosts:
+  *controller_hosts
+
+ironic-compute_hosts:
+  *controller_hosts
+
+ironic-inspector_hosts:
+  *controller_hosts
+
+swift-proxy_hosts:
+  *controller_hosts
+
+swift_hosts:
+  *controller_hosts
+
+# Add neutron to existing control plane hosts
+network_hosts:
+  *controller_hosts

@@ -1,0 +1,213 @@
+---
+
+### PLEASE MAKE ALL ENVIRONMENT RELATED CHANGES HERE ###
+### WHEN EXISTING OVERRIDES SHOULD BE ALTERED,       ###
+### PLEASE COPY THE OVERRIDE FROM THE GLOBAL CONFIG  ###
+### IN IT'S ENTIRETY AND ALTER LOCALLY HERE.         ###
+
+dummy: remove-me-upon-edit
+
+# Following the environment related configuration
+# when CEPH is deployed
+#ceph_mons:
+#  - "mon-01.openstack.net"
+#  - "mon-02.openstack.net"
+#  - "mon-02.openstack.net"
+
+
+glance_default_store: swift
+#ironic_swift_endpoint: "http://{{ internal_lb_vip_address }}:8080"
+#nova_ceph_client: "{{ cinder_ceph_client }}"
+#nova_ceph_client_uuid: "{{ cinder_ceph_client_uuid }}"
+#nova_libvirt_images_rbd_pool: vms
+openstack_service_bind_address: 172.29.236.11 
+rabbitmq_management_bind_address: 172.29.236.11
+#galera_address: "{{ ansible_default_ipv4.address }}"
+#keystone_db_setup_host: 10.200.0.191
+#swift_storage_address: 10.200.0.191
+#rabbitmq_port_bindings:
+#  ssl_listeners:
+#    "172.29.236.11": 5671
+#  tcp_listeners:
+#    "172.29.236.11": 5672
+
+#nova_novncproxy_git_install_branch: '8c2866df3619e49d629b5f98c20d27a7c72d102a'
+
+neutron_provider_networks:
+  network_flat_networks: "physnet2"
+  network_types: "vlan, flat"
+  network_vlan_ranges: "physnet1:205:205,physnet1:208:212"
+  #network_vxlan_ranges: "4096:65535"
+  network_mappings: "physnet1:br-ex,physnet2:br-pxe"
+
+neutron_plugin_base:
+   - router
+
+neutron_plugin_type: ml2.ovs.dvr
+
+#neutron_plugin_types:
+#   - ml2.baremetal
+#haproxy_extra_services:
+#  - service:
+#      haproxy_service_name: ceph_rgw
+#      haproxy_backend_nodes: "{{ groups['cephrgwdummy_hosts'] }}"
+#      haproxy_ssl: True
+#      haproxy_balance_type: http
+#      haproxy_backend_options:
+#        - "httpchk HEAD /"
+#
+#glance_default_store: rbd
+
+#nova_ceph_client: "{{ cinder_ceph_client }}"
+#nova_ceph_client_uuid: "{{ cinder_ceph_client_uuid }}"
+#nova_libvirt_images_rbd_pool: vms
+
+#maas_api_url: https://monitoring.api.rackspacecloud.com/v1.0/hybrid:<DDI>
+#maas_auth_token:
+#maas_env_identifier: cloud1
+#maas_fqdn_extension: ".{{ maas_env_identifier}}.{{ openstack_domain }}"
+#maas_raxdc: true
+
+# No need to reserver memory with ironic only
+nova_nova_conf_overrides:
+  DEFAULT:
+    debug: True
+    dhcp_domain: "{{ dhcp_domain }}"
+    use_cow_images: false
+    force_config_drive: false
+    reserved_host_memory_mb: 0
+
+# https://github.com/openstack/openstack-ansible-os_nova/commit/4f993fdd8e226f730378cc7ad25e09a3cb8d9c18
+# string list issue
+nova_scheduler_default_filters:
+  - RetryFilter
+  - AvailabilityZoneFilter
+  - ComputeFilter
+  - AggregateCoreFilter
+  - AggregateNumInstancesFilter
+  - AggregateIoOpsFilter
+  - ComputeCapabilitiesFilter
+  - ImagePropertiesFilter
+  - ServerGroupAntiAffinityFilter
+  - ServerGroupAffinityFilter
+  - NUMATopologyFilter
+nova_scheduler_extra_filters: []
+
+haproxy_keepalived_external_vip_cidr: 10.200.0.100/32
+haproxy_keepalived_internal_vip_cidr: 172.29.236.100/32
+
+galera_monitoring_allowed_source: "127.0.0.1 {{ container_cidr }} 10.200.0.0/22"
+
+haproxy_keepalived_external_interface: bond0
+haproxy_keepalived_internal_interface: br-mgmt
+apply_security_hardening: false
+openstack_domain: openstack-aio.net
+
+# Ebable swift temp url
+ironic_enable_web_server_for_images: false
+ironic_tftp_server_address: 172.20.200.11
+# separate ironic tftp from inspector
+ironic_inspector_ipa_tftpboot_image_dir: "/tftpboot_inspector"
+ironic_swift_endpoint: "http://{{ external_lb_vip_address }}:8080"
+ironic_neutron_cleaning_network_uuid: "ironic-network"
+ironic_neutron_provisioning_network_name: "ironic-network"
+ironic_inspector_pxe_append_params: "console=tty0 console=ttyS0,115200n8 ipa-insecure=1 ramdisk_size=3485760 ipa-inspection-collectors=default,extra-hardware,logs"
+#ipa-collect-lldp=1 ipa-inspection-benchmarks=cpu,mem,disk"
+ironic_pxe_append_params: "console=tty0 console=ttyS0,115200n8 ipa-insecure=1"
+ironic_inspector_dhcp_pool_range: 172.20.203.100 172.20.203.254
+ironic_inspector_dhcp_gateway: 172.20.200.1
+ironic_inspector_dhcp_nameservers: 172.20.200.11
+
+# Enable ironic inspector
+ironic_inspector_ironic_enable: True
+# Enable ironic ipxe
+ironic_httpboot_enabled: True
+# Use swift as webserver
+ironic_httpboot_use_swift: True
+# enable extra processing hooks
+ironic_inspector_processing_hooks: "ramdisk_error,root_disk_selection,scheduler,validate_interfaces,capabilities,pci_devices,raid_device,extra_hardware,local_link_connection,lldp_basic"
+# Overcome issue with selfsigned certs and ipxe
+swift_service_publicuri_proto: "http"
+# Hack to modify only swift service
+haproxy_extra_services:
+  - service:
+      haproxy_service_name: swift_proxy
+      haproxy_backend_nodes: "{{ groups['swift_proxy'] | default([]) }}"
+      haproxy_ssl: False
+      haproxy_balance_alg: source
+      haproxy_port: 8080
+      haproxy_balance_type: http
+      haproxy_backend_options:
+        - "httpchk GET /healthcheck HTTP/1.0\\r\\nUser-agent:\\ osa-haproxy-healthcheck"
+      haproxy_service_enabled: "{{ groups['swift_proxy'] is defined and groups['swift_proxy'] | length > 0 }}"
+  - service:
+      haproxy_service_name: ironic_inspector
+      haproxy_backend_nodes: "{{ groups['ironic_inspector'] | default([]) }}"
+      haproxy_ssl: false
+      haproxy_port: 5050
+      haproxy_balance_type: http
+      haproxy_backend_options:
+        - "httpchk GET / HTTP/1.0\\r\\nUser-agent:\\ osa-haproxy-healthcheck"
+      haproxy_service_enabled: "{{ groups['ironic_inspector'] is defined and groups['ironic_inspector'] | length > 0 }}"
+
+# No need to reserver memory with ironic only
+default_ipa_image_server_ip: 10.184.227.238:8000
+ipa_kernel_name: "ipa_kernel"
+ipa_ramdisk_name: "ipa_ramdisk"
+ipa_image_server_ip: "{{ lookup('env', 'IPA_IMAGE_SERVER') | default(default_ipa_image_server_ip, True) }}"
+ironic_inspector_ipa_kernel_url: "http://{{ipa_image_server_ip}}/{{ ipa_kernel_name }}"
+ironic_inspector_ipa_kernel_sha256_url: "http://{{ipa_image_server_ip}}/{{ ipa_kernel_name }}.sha256"
+ironic_inspector_ipa_initrd_url: "http://{{ipa_image_server_ip}}/{{ ipa_ramdisk_name }}"
+ironic_inspector_ipa_initrd_sha256_url: "http://{{ipa_image_server_ip}}/{{ ipa_ramdisk_name }}.sha256"
+ironic_inspector_tftpboot_dir: /tftpboot
+ironic_pxe_config_template: "/etc/ironic/ipxe_config.template"
+ironic_uefi_pxe_config_template: "/etc/ironic/ipxe_config.template"
+
+cloud_images:
+  - bionic:
+     name: "ubuntu-bionic"
+     url: "http://cloud-images.ubuntu.com/bionic/current/bionic-server-cloudimg-amd64.img"
+  - xenial:
+     name: "ubuntu-xenial"
+     url: "http://cloud-images.ubuntu.com/xenial/current/xenial-server-cloudimg-amd64-uefi1.img"
+  - cirros:
+     name: "cirros-0.3.6"
+     url: "http://download.cirros-cloud.net/0.3.6/cirros-0.3.6-x86_64-disk.img"
+     #  - rpc_bionic:
+     #     name: "rpc-bionic-18.04.2"
+     #     url: "http://{{ipa_image_server_ip}}/rpc-bionic-18.04.2.qcow2"
+     #  - rpc_xenial:
+     #     name: "rpc-xenial-16.04.6"
+     #     url: "http://{{ipa_image_server_ip}}/rpc-xenial-16.04.6.qcow2"
+ipa_images:
+#   coreos:
+#     kernel:
+#       url: "http://tarballs.openstack.org/ironic-python-agent/coreos/files/coreos_production_pxe-stable-ussuri.vmlinuz"
+#       name: "coreos_kernel"
+#     ramdisk:
+#       url: "http://tarballs.openstack.org/ironic-python-agent/coreos/files/coreos_production_pxe_image-oem-stable-ussuri.cpio.gz"
+#       name: "coreos_ramdisk"
+  tinyipa:
+    kernel:
+      url: "http://tarballs.openstack.org/ironic-python-agent/tinyipa/files/tinyipa-stable-ussuri.vmlinuz"
+      name: "tinyipa_kernel"
+    ramdisk:
+      url: "http://tarballs.openstack.org/ironic-python-agent/tinyipa/files/tinyipa-stable-ussuri.gz"
+      name: "tinyipa_ramdisk"
+  ubuntu:
+    kernel:
+      name: "{{ ipa_kernel_name }}"
+      url: "http://{{ipa_image_server_ip}}/{{ ipa_kernel_name }}"
+    ramdisk:
+      name: "{{ ipa_ramdisk_name }}"
+      url: "http://{{ipa_image_server_ip}}/{{ ipa_ramdisk_name }}"
+
+
+# HAPROXY
+haproxy_bind_on_non_local: True
+
+# swift
+#swift_fallocate_reserve: "1%%"
+journald_remote_enabled: true
+# power state sync
+ironic_sync_power_state_interval: 300
