@@ -51,9 +51,33 @@
       nameserver {{host_nameservers}}
       nameserver {{ ansible_default_ipv4.address }}
 
+- name: Add dnsmasq unit
+  copy:
+    dest: /etc/systemd/system/dnsmasq-private.service
+    content: |
+      [Unit]
+      Description=Private DNS server
+      Requires=network.target
+      After=network.target
+
+      [Service]
+      Type=forking
+      PIDFile=/run/dnsmasq/dnsmasq-private.pid
+
+      # Test the config file and refuse starting if it is not valid.
+      ExecStartPre=/usr/sbin/dnsmasq --test -C /etc/private.conf
+      # We run dnsmasq via the /etc/init.d/dnsmasq script which acts as a
+      # wrapper picking up extra configuration files and then execs dnsmasq
+      # itself, when called with the "systemd-exec" function.
+      ExecStart=/usr/sbin/dnsmasq -C /etc/private.conf -x /run/dnsmasq/dnsmasq-private.pid
+      ExecReload=/bin/kill -HUP $MAINPID
+      Restart = always
+
+      [Install]
+      WantedBy=multi-user.target
+
 - name: Enable auto restart of dnsmasq
-  ini_file:
-    path: /lib/systemd/system/dnsmasq.service
-    section: Service
-    option: Restart
-    value: always
+  systemd:
+    name: dnsmasq-private
+    enabled: yes
+    state: stopped

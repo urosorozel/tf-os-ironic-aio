@@ -6,9 +6,7 @@
         {"action": "set-attribute", "path": "driver_info/ipmi_username",
          "value": "admin"},
         {"action": "set-attribute", "path": "driver_info/ipmi_password",
-         "value": "admin"},
-    {"action": "set-attribute", "path": "name",
-         "value": "{data[inventory][system_vendor][manufacturer]}_{data[inventory][boot][pxe_interface]}"}
+         "value": "admin"}
     ],
     "conditions": [
         {"op": "is-empty", "field": "node://driver_info.ipmi_password"},

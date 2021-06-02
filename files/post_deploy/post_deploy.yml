@@ -172,7 +172,6 @@
           "resources:VCPU": 0
           "resources:MEMORY_MB": 0
           "resources:DISK_GB": 0
-          "capabilities:cpu_vt": "true"
           "capabilities:cpu_hugepages": "true"
           "capabilities:boot_mode": "bios"
           "resources:CUSTOM_BAREMETAL_SMALL": "1"
@@ -191,7 +190,6 @@
           "resources:VCPU": 0
           "resources:MEMORY_MB": 0
           "resources:DISK_GB": 0
-          "capabilities:cpu_vt": "true"
           "capabilities:cpu_hugepages": "true"
           "capabilities:boot_mode": "uefi"
           "resources:CUSTOM_BAREMETAL_SMALL": "1"

@@ -164,18 +164,12 @@ ironic_pxe_config_template: "/etc/ironic/ipxe_config.template"
 ironic_uefi_pxe_config_template: "/etc/ironic/ipxe_config.template"
 
 cloud_images:
-  - bionic:
-     name: "ubuntu-bionic"
-     url: "http://cloud-images.ubuntu.com/bionic/current/bionic-server-cloudimg-amd64.img"
-  - xenial:
-     name: "ubuntu-xenial"
-     url: "http://cloud-images.ubuntu.com/xenial/current/xenial-server-cloudimg-amd64-uefi1.img"
-  - cirros:
-     name: "cirros-0.3.6"
-     url: "http://download.cirros-cloud.net/0.3.6/cirros-0.3.6-x86_64-disk.img"
-     #  - rpc_bionic:
-     #     name: "rpc-bionic-18.04.2"
-     #     url: "http://{{ipa_image_server_ip}}/rpc-bionic-18.04.2.qcow2"
+  - focal:
+     name: "ubuntu-focal"
+     url: "http://cloud-images.ubuntu.com/focal/current/focal-server-cloudimg-amd64.img"
+     #  - rpc_focal:
+     #     name: "rpc-focal-18.04.2"
+     #     url: "http://{{ipa_image_server_ip}}/rpc-focal-18.04.2.qcow2"
      #  - rpc_xenial:
      #     name: "rpc-xenial-16.04.6"
      #     url: "http://{{ipa_image_server_ip}}/rpc-xenial-16.04.6.qcow2"
