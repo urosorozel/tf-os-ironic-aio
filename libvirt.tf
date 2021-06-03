@@ -240,7 +240,8 @@ resource "ansible_host" "aio_nodes" {
     groups = ["openstack-cluster","aio"]
     vars = {
         ansible_user = "ubuntu"
-        ansible_host = "${format("${var.aio_node_prefix}-%02d", count.index + 1)}.${var.domain_name}"
+        #ansible_host = "${format("${var.aio_node_prefix}-%02d", count.index + 1)}.${var.domain_name}"
+        ansible_host = "10.200.0.100"
     }
     count = "${var.aio_node_count}"
     depends_on = [libvirt_domain.aio_nodes]
@@ -248,7 +249,7 @@ resource "ansible_host" "aio_nodes" {
 
 resource "ansible_host" "aio_ironic" {
     inventory_hostname = "${format("${var.ironic_node_prefix}-%02d", count.index + 1)}.${var.domain_name}"
-    groups = ["openstack-cluster","aio"]
+    groups = ["ironic"]
     vars = {
         ansible_user = "ubuntu"
         ansible_host = "${format("${var.ironic_node_prefix}-%02d", count.index + 1)}.${var.domain_name}"
