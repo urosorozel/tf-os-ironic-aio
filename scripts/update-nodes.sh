@@ -3,7 +3,7 @@
 IP_OFFSET=9
 DEPLOY_INTERFACE="iscsi"
 
-for node in $(openstack baremetal node list -f value -c UUID);do
+for node in $(openstack baremetal node list --provision-state enroll -f value -c UUID);do
 	echo "node: $node"
 	mac=$(openstack baremetal port list --node $node -f value -c Address)
 	echo "mac: $mac"

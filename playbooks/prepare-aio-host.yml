@@ -1,0 +1,105 @@
+- name: Prepare AIO host
+  hosts: localhost
+  become: no
+  vars:
+    packages:
+      - docker.io
+      - unzip
+      - libvirt-daemon
+      - libvirt-clients
+      - bridge-utils
+      - libvirt-daemon-system
+      - mkisofs
+      - python3-pip
+      - python3-venv
+      - python3-dev
+      - libvirt-dev
+
+    tf_files:
+      - url: https://releases.hashicorp.com/terraform/0.15.4/terraform_0.15.4_linux_amd64.zip
+        name: terraform
+        dest: "{{ ansible_env.HOME }}/terraform_0.15.4_linux_amd64.zip"
+      - url: https://github.com/nbering/terraform-provider-ansible/releases/download/v1.0.4/terraform-provider-ansible_1.0.4_linux_amd64.zip
+        name: terraform-provider-ansible
+        dest: "{{ ansible_env.HOME }}/terraform-provider-ansible_1.0.4_linux_amd64.zip"
+        #.local/share/terraform/plugins/registry.terraform.io/nbering/ansible/1.0.4/linux_amd64" 
+      - url: https://github.com/dmacvicar/terraform-provider-libvirt/releases/download/v0.6.3/terraform-provider-libvirt-0.6.3+git.1604843676.67f4f2aa.Ubuntu_20.04.amd64.tar.gz
+        name: terraform-provider-libvirt
+        dest: "{{ ansible_env.HOME }}/terraform-provider-libvirt-0.6.3.tar.gz"
+        #.local/share/terraform/plugins/registry.terraform.io/dmacvicar/libvirt/0.6.3/linux_amd64"
+
+    k8s_files:
+      - url: https://kind.sigs.k8s.io/dl/v0.11.0/kind-linux-amd64
+        name: kind
+        dest: /usr/local/bin
+      - url: https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.16/clusterctl-linux-amd64
+        name: clusterctl
+        dest: /usr/local/bin
+      - url: https://dl.k8s.io/release/v1.21.1/bin/linux/amd64/kubectl
+        name: kubectl
+        dest: /usr/local/bin
+        #- urls: https://raw.githubusercontent.com/kubernetes-sigs/cluster-api-provider-openstack/master/templates/env.rc
+        #name: env.rc
+        #dest: "{{ ansible_env.HOME }}"
+  tasks:
+    - name: Install packages
+      apt:
+        name: "{{ item }}"
+      with_items: "{{ packages }}"
+
+    - name: Disable qemu security driver
+      lineinfile:
+        path: /etc/libvirt/qemu.conf
+        line: 'security_driver = "none"'
+        regexp: 'security_driver'
+      become: yes
+
+    - name: Add user to libvirt and docker group
+      user:
+        name: ubuntu
+        groups:
+          - docker
+          - libvirt
+        append: yes
+
+    - name: Download Terraform
+      get_url:
+        url: "{{ item.url }}"
+        dest: "{{ item.dest }}"
+      with_items: "{{ tf_files }}"
+      register: k8sdown
+
+    - name: Decomress
+      unarchive:
+        src: "{{ item.dest }}"
+        dest: "{{ ansible_env.HOME }}"
+      with_items: "{{ tf_files }}"
+      when: k8sdown.changed
+      register: decomress
+
+    - name: Create TF pplugins dir
+      file:
+        path: "{{ ansible_env.HOME }}/{{ item }}"
+        recurse: yes
+      with_items:
+        - .local/share/terraform/plugins/registry.terraform.io/nbering/ansible/1.0.4/linux_amd64
+        - .local/share/terraform/plugins/registry.terraform.io/dmacvicar/libvirt/0.6.3/linux_amd64
+
+    - name: Move terraform plugins files
+      shell: |
+        mv {{ ansible_env.HOME }}/terraform-provider-ansible_v1.0.4 {{ ansible_env.HOME }}/.local/share/terraform/plugins/registry.terraform.io/nbering/ansible/1.0.4/linux_amd64
+        mv {{ ansible_env.HOME }}/terraform-provider-libvirt {{ ansible_env.HOME }}/.local/share/terraform/plugins/registry.terraform.io/dmacvicar/libvirt/0.6.3/linux_amd64
+      when: decomress.changed
+
+    - name: Move terraform
+      shell: |
+        mv {{ ansible_env.HOME }}/terraform /usr/local/bin/
+      when: decomress.changed
+
+    - name: Download k8s utils
+      get_url:
+        url: "{{ item.url }}"
+        dest: "{{ item.dest }}/{{ item.name }}"
+        mode: 0755
+      with_items: "{{ k8s_files }}"
+      become: yes
