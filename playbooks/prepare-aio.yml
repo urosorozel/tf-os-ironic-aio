@@ -1,0 +1,58 @@
+- name: Prepare AIO
+  hosts: aio
+  become: yes
+  tasks:
+    - name: BUG Ensure Inspector conductor is running
+      service:
+        name: ironic-inspector-conductor
+        state: started
+
+    - name: Copy haproxy self-signed cert
+      fetch:
+        src: /etc/ssl/certs/haproxy.cert
+        dest: "{{ansible_env.PWD}}/haproxy.crt"
+        flat: yes
+
+    - name: Copy haproxy self-signed cert
+      fetch:
+        src: /root/.config/openstack/clouds.yaml
+        dest: "{{ansible_env.PWD}}/clouds.yaml"
+        flat: yes
+
+    - name: Correct clouds.yaml
+      replace:
+        path: "{{ansible_env.PWD}}/clouds.yaml"
+        replace: "https://public"
+        regexp: "http://private"
+      delegate_to: localhost
+
+    - name: Correct clouds.yaml
+      replace:
+        path: "{{ansible_env.PWD}}/clouds.yaml"
+        replace: "public"
+        regexp: "internal"
+      delegate_to: localhost
+
+# export OS_CLOUD=default
+# export OS_CLIENT_CONFIG_FILE=/home/ubuntu/tf-os-ironic-aio/clouds.yaml
+#
+    - name: Correct clouds.yaml
+      lineinfile:
+        path: "{{ansible_env.PWD}}/clouds.yaml"
+        regexp: "identity_api_version"
+        line: "    cacert: {{ansible_env.PWD}}/haproxy.crt"
+        insertafter: "identity_api_version"
+      delegate_to: localhost
+
+    - name: Create openstack rc file
+      copy:
+        mode: 0644
+        dest: "{{ansible_env.PWD}}/rc.openstack"
+        content: |
+          export OS_CLOUD=default
+          export OS_CLIENT_CONFIG_FILE={{ansible_env.PWD}}/clouds.yaml
+      delegate_to: localhost
+
+    - name: Reset all ironic nodes
+      shell: |
+        virsh list --name|grep ironic|xargs -Ixx virsh reset xx
