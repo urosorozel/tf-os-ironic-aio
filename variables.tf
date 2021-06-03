@@ -8,6 +8,11 @@ variable "openstack_aio_network" {
     default  = "10.200.0.0/24"
 }
 
+variable "openstack_aio_vbmc_offset" {
+    description = "Cidr offset for vbmc"
+    default  = "10"
+}
+
 variable "openstack_aio_ironic_network" {
     description = "Subnet cidr for openstack_aio ironic hosts"
     default = "172.20.200.0/22"
@@ -81,7 +86,7 @@ variable "ironic_node_prefix" {
 
 variable "ironic_node_count" {
     description = "The number of ironic nodes."
-    default  = "2"
+    default  = "6"
 }
 
 variable "ironic_node_cpu" {

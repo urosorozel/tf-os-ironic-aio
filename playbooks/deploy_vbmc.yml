@@ -1,0 +1,75 @@
+- name: Deploy virtual bmc
+  hosts: localhost
+  become: yes
+  tasks:
+    - name: Create virtual env
+      pip:
+        name: virtualbmc
+        virtualenv: /opt/vbmc/
+      become: yes
+
+    - name: Create VirtualBMC directories
+      file:
+        path: "{{ item }}"
+        state: directory
+        mode: 0750
+        owner: root
+        group: root
+      with_items:
+        - "/etc/virtualbmc"
+        - "/var/log/virtualbmc"
+
+    - name: Create VirtualBMC configuration file
+      copy:
+        mode: 0750
+        dest: "/etc/virtualbmc/virtualbmc.conf"
+        content: |
+          [default]
+          #config_dir=/root/.vbmc
+          [log]
+          logfile=/var/log/virtualbmc/virtualbmc.log
+          debug=True
+          [ipmi]
+          session_timout=20
+
+
+
+    - name: Create VirtualBMC configuration file
+      copy:
+        mode: 0644
+        dest: "/etc/systemd/system/vbmcd.service"
+        content: |
+          [Install]
+          WantedBy = multi-user.target
+          
+          [Service]
+          BlockIOAccounting = True
+          CPUAccounting = True
+          ExecReload = /bin/kill -HUP $MAINPID
+          ExecStart = /opt/vbmc/bin/vbmcd --foreground
+          Group = root
+          MemoryAccounting = True
+          PrivateDevices = False
+          PrivateNetwork = False
+          PrivateTmp = False
+          PrivateUsers = False
+          Restart = on-failure
+          RestartSec = 2
+          Slice = vbmc.slice
+          TasksAccounting = True
+          TimeoutSec = 120
+          Type = simple
+          User = root
+          
+          [Unit]
+          After = libvirtd.service
+          After = syslog.target
+          After = network.target
+          Description = vbmc service
+
+    - name: Start vbmcd service
+      systemd:
+        name: "vbmcd"
+        state: started
+        daemon_reload: yes
+        enabled: true

@@ -9,11 +9,15 @@ resource "libvirt_pool" "openstack_aio_pool" {
 
 }
 
+# Define locals for destory
+locals {
+    ironic_prefix = var.ironic_node_prefix
+}
 
 resource "libvirt_network" "openstack_aio_network" {
   name      = "aio-network"
   bridge    = "aio-network"
-  mtu       = 9000
+  mtu       = 1500
   mode      = "nat"
   domain    = "${var.domain_name}"
   addresses = [var.openstack_aio_network]
@@ -203,19 +207,56 @@ resource "libvirt_domain" "ironic_nodes" {
 
 # END IRONIC
 
+resource "null_resource" "add-address" {
+   provisioner "local-exec" {
+       command = "sudo ip addr add ${cidrhost(var.openstack_aio_network, count.index + var.openstack_aio_vbmc_offset)}/32 dev aio-network"
+   }
+   count = "${var.ironic_node_count}"
+   depends_on = [libvirt_network.openstack_aio_network]
+}
+
+resource "null_resource" "add-vbmc-host" {
+   provisioner "local-exec" {
+       interpreter = ["/bin/bash", "-c"]
+       command = <<-EOT
+           /opt/vbmc/bin/vbmc add --username admin --password admin --address ${cidrhost(var.openstack_aio_network, count.index + var.openstack_aio_vbmc_offset)} ${format("${var.ironic_node_prefix}-%02d", count.index + 1)}
+           /opt/vbmc/bin/vbmc start ${format("${var.ironic_node_prefix}-%02d", count.index + 1)}
+           EOT
+   }
+   count = "${var.ironic_node_count}"
+   depends_on = [null_resource.add-address,libvirt_domain.ironic_nodes]
+}
+
+resource "null_resource" "del-vbmc-host" {
+   provisioner "local-exec" {
+       when = destroy
+       command = "/opt/vbmc/bin/vbmc list -f value -c 'Domain name' | xargs /opt/vbmc/bin/vbmc delete"
+   }
+}
+
+
 resource "ansible_host" "aio_nodes" {
     inventory_hostname = "${format("${var.aio_node_prefix}-%02d", count.index + 1)}.${var.domain_name}"
     groups = ["openstack-cluster","aio"]
     vars = {
         ansible_user = "ubuntu"
-        #ansible_host = "${element(libvirt_domain.aio_nodes,count.index).network_interface.0.addresses.0}"
         ansible_host = "${format("${var.aio_node_prefix}-%02d", count.index + 1)}.${var.domain_name}"
-        #access_ip = "${element(libvirt_domain.aio_nodes,count.index).network_interface.0.addresses.0}"
     }
     count = "${var.aio_node_count}"
     depends_on = [libvirt_domain.aio_nodes]
 }
 
-#output "aio_ips" {
-#  value = libvirt_domain.aio_nodes.*.network_interface.0.addresses
-#}
+resource "ansible_host" "aio_ironic" {
+    inventory_hostname = "${format("${var.ironic_node_prefix}-%02d", count.index + 1)}.${var.domain_name}"
+    groups = ["openstack-cluster","aio"]
+    vars = {
+        ansible_user = "ubuntu"
+        ansible_host = "${format("${var.ironic_node_prefix}-%02d", count.index + 1)}.${var.domain_name}"
+    }
+    count = "${var.ironic_node_count}"
+    depends_on = [libvirt_domain.ironic_nodes]
+}
+
+output "aio_ips" {
+  value = libvirt_domain.aio_nodes.*.network_interface.0.addresses
+}
