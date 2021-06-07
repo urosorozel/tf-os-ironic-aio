@@ -1,0 +1,201 @@
+apiVersion: cluster.x-k8s.io/v1alpha3
+kind: Cluster
+metadata:
+  name: capi-quickstart
+  namespace: default
+spec:
+  clusterNetwork:
+    pods:
+      cidrBlocks:
+      - 192.168.0.0/16
+    serviceDomain: cluster.local
+  controlPlaneRef:
+    apiVersion: controlplane.cluster.x-k8s.io/v1alpha3
+    kind: KubeadmControlPlane
+    name: capi-quickstart-control-plane
+  infrastructureRef:
+    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
+    kind: OpenStackCluster
+    name: capi-quickstart
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
+kind: OpenStackCluster
+metadata:
+  name: capi-quickstart
+  namespace: default
+spec:
+  cloudName: default
+  cloudsSecret:
+    name: capi-quickstart-cloud-config
+    namespace: default
+  disablePortSecurity: true
+  dnsNameservers:
+  - 192.168.1.24
+  managedAPIServerLoadBalancer: false
+  managedSecurityGroups: false
+  #nodeCidr:
+  network:
+    name: ironic-network
+  subnet:
+    name: ironic-subnet
+  externalNetworkId: b2242835-603f-4612-9caf-0a6f01e3cc70 
+  useOctavia: false
+  controlPlaneEndpoint:
+    host: k8s.openstack-aio.net
+    port: 6443
+
+---
+apiVersion: controlplane.cluster.x-k8s.io/v1alpha3
+kind: KubeadmControlPlane
+metadata:
+  name: capi-quickstart-control-plane
+  namespace: default
+spec:
+  infrastructureTemplate:
+    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
+    kind: OpenStackMachineTemplate
+    name: capi-quickstart-control-plane
+  kubeadmConfigSpec:
+    clusterConfiguration:
+      apiServer:
+        extraArgs:
+          cloud-config: /etc/kubernetes/cloud.conf
+          cloud-provider: openstack
+        extraVolumes:
+        - hostPath: /etc/kubernetes/cloud.conf
+          mountPath: /etc/kubernetes/cloud.conf
+          name: cloud
+          readOnly: true
+      controllerManager:
+        extraArgs:
+          cloud-config: /etc/kubernetes/cloud.conf
+          cloud-provider: openstack
+        extraVolumes:
+        - hostPath: /etc/kubernetes/cloud.conf
+          mountPath: /etc/kubernetes/cloud.conf
+          name: cloud
+          readOnly: true
+        - hostPath: /etc/certs/cacert
+          mountPath: /etc/certs/cacert
+          name: cacerts
+          readOnly: true
+      imageRepository: k8s.gcr.io
+    files:
+    - content: W0dsb2JhbF0KYXV0aC11cmw9aHR0cHM6Ly9wdWJsaWMub3BlbnN0YWNrLWFpby5uZXQ6NTAwMC92Mwp1c2VybmFtZT0iYWRtaW4iCnBhc3N3b3JkPSI2MjRjNGY5MTllOTAzODQyZDNhNjQ4MGI3ZDdlYWI0NTM1MDVmZjk3N2Y1YjI4YjZmNDZiODkiCnRlbmFudC1uYW1lPSJhZG1pbiIKZG9tYWluLW5hbWU9IkRlZmF1bHQiCmNhLWZpbGU9Ii9ldGMvY2VydHMvY2FjZXJ0IgpyZWdpb249IlJlZ2lvbk9uZSIK
+      encoding: base64
+      owner: root
+      path: /etc/kubernetes/cloud.conf
+      permissions: "0600"
+    - content: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUQrVENDQXVHZ0F3SUJBZ0lVV1loNkV1em9yd1hVWTgzWnlIYnppNndVVVZZd0RRWUpLb1pJaHZjTkFRRUwKQlFBd2dZc3hDekFKQmdOVkJBWVRBbFZUTVE0d0RBWURWUVFJREFWVVpYaGhjekVVTUJJR0ExVUVCd3dMVTJGdQpJRUZ1ZEc5dWFXOHhDekFKQmdOVkJBb01Ba2xVTVNFd0h3WURWUVFEREJod2RXSnNhV011YjNCbGJuTjBZV05yCkxXRnBieTV1WlhReEpqQWtCZ05WSFJFTUhVbFFMakU5Y0hWaWJHbGpMbTl3Wlc1emRHRmpheTFoYVc4dWJtVjAKTUI0WERUSXhNRFl3TWpBNE1qRXpPVm9YRFRNeE1EVXpNVEE0TWpFek9Wb3dnWXN4Q3pBSkJnTlZCQVlUQWxWVApNUTR3REFZRFZRUUlEQVZVWlhoaGN6RVVNQklHQTFVRUJ3d0xVMkZ1SUVGdWRHOXVhVzh4Q3pBSkJnTlZCQW9NCkFrbFVNU0V3SHdZRFZRUUREQmh3ZFdKc2FXTXViM0JsYm5OMFlXTnJMV0ZwYnk1dVpYUXhKakFrQmdOVkhSRU0KSFVsUUxqRTljSFZpYkdsakxtOXdaVzV6ZEdGamF5MWhhVzh1Ym1WME1JSUJJakFOQmdrcWhraUc5dzBCQVFFRgpBQU9DQVE4QU1JSUJDZ0tDQVFFQXpDc09FSEdqZlpvczRwQ0VHM2NlM2N1ZVhKb1ZSS2pENHRjV1BBZW51ajROCm1EOFBTanRPZS9hS3lQUzQwa253cEZaWmNnM29lMmNlMFpGeU04b1hIdkxGVzVRQ0dtMGttRGtpajhsUzE4aTAKTlg1TWs3Z1Vqdlc0eWtBNENsUkJZSDl6dGRvRUx4Smxzb01Bb00zMTI5Z1pqMmU2UjdDVWJOZWNuUUQ0a3JHWQpUT1VWUGVQak1rR3djenVBVGg4Y3FsWHhVL3lPNCtSMDNoMklVOUVmOXNXVkxMaTVSaVBLUTJjWWw4WndGczdhCnZ2aEYzeDM4WGRQR2Rvb3NOaTNITWl5S2t3ZE96Y2thOW8wWGZIaUt0RFlhYnk0VEJITmpLdHNCYWV6OGdGZkYKT2ptYUkzTVpoRjFTY1NZWlVhRm5abzdCRFZNNXpNM3cva3RqcHg5c2F3SURBUUFCbzFNd1VUQWRCZ05WSFE0RQpGZ1FVVG5yd2hYenoxK2NsK0o1ZTd6M0krTkJ6aGhFd0h3WURWUjBqQkJnd0ZvQVVUbnJ3aFh6ejErY2wrSjVlCjd6M0krTkJ6aGhFd0R3WURWUjBUQVFIL0JBVXdBd0VCL3pBTkJna3Foa2lHOXcwQkFRc0ZBQU9DQVFFQWQ3ZGYKTEkwRWppUWU2N3c2Y28xYzllclNRM1E3U1BqQVFZKy9yRGJmMnVNWTk5MWIwOEN6TkIvMFlrNVkwMlhxeFMwQgpaM29YWUtOWFdlTGliVnVKR3VsSkV4VXhpQ05nU3FaMDdYT1VoV2hOdlZtSlEwcklFb3JMUzRBT3NtWk8zZFRjCjAvNlZpRTg0M09uZ3lxU3VXZTZHN0Zma3Nyd01iV0t0cWorWTlqbFdCYXNnaVEwUEt1ZzlyUFZ0K2pFbHFJMFMKUzdzRzFnc1lKNmZZaHZIOHFzaDBuSlh2UTlBR3dmbGxFTzBvL0ZDM0Zta2ZIekVrUW5qdDE0ZjgvTmRjc2pxUgpJdEFMVHpIckR2OFBIRVJkRWp4dnpPV3pSTU5DMzNEWlI4UjlLUGFWMlAybXc2QVZLT3Y5ZjFVelJvOTZqSjdhCmdlRFBhOVlJVTBHQXkxRmV6dz09Ci0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0K
+      encoding: base64
+      owner: root
+      path: /etc/certs/cacert
+      permissions: "0600"
+    initConfiguration:
+      nodeRegistration:
+        kubeletExtraArgs:
+          cloud-config: /etc/kubernetes/cloud.conf
+          cloud-provider: openstack
+        name: '{{ local_hostname }}'
+    joinConfiguration:
+      nodeRegistration:
+        kubeletExtraArgs:
+          cloud-config: /etc/kubernetes/cloud.conf
+          cloud-provider: openstack
+        name: '{{ local_hostname }}'
+  replicas: 3
+  version: v1.18.16
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
+kind: OpenStackMachineTemplate
+metadata:
+  name: capi-quickstart-control-plane
+  namespace: default
+spec:
+  template:
+    spec:
+      cloudName: default
+      cloudsSecret:
+        name: capi-quickstart-cloud-config
+        namespace: default
+      flavor: baremetal-flavor-bios
+      image: k8s-image
+      sshKeyName: osa_key
+---
+apiVersion: cluster.x-k8s.io/v1alpha3
+kind: MachineDeployment
+metadata:
+  name: capi-quickstart-md-0
+  namespace: default
+spec:
+  clusterName: capi-quickstart
+  replicas: 3
+  selector:
+    matchLabels: null
+  template:
+    spec:
+      bootstrap:
+        configRef:
+          apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
+          kind: KubeadmConfigTemplate
+          name: capi-quickstart-md-0
+      clusterName: capi-quickstart
+      failureDomain: nova
+      infrastructureRef:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
+        kind: OpenStackMachineTemplate
+        name: capi-quickstart-md-0
+      version: v1.18.16
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
+kind: OpenStackMachineTemplate
+metadata:
+  name: capi-quickstart-md-0
+  namespace: default
+spec:
+  template:
+    spec:
+      cloudName: default
+      cloudsSecret:
+        name: capi-quickstart-cloud-config
+        namespace: default
+      flavor: baremetal-flavor-bios
+      image: k8s-image
+      sshKeyName: osa_key
+---
+apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
+kind: KubeadmConfigTemplate
+metadata:
+  name: capi-quickstart-md-0
+  namespace: default
+spec:
+  template:
+    spec:
+      files:
+      - content: W0dsb2JhbF0KYXV0aC11cmw9aHR0cHM6Ly9wdWJsaWMub3BlbnN0YWNrLWFpby5uZXQ6NTAwMC92Mwp1c2VybmFtZT0iYWRtaW4iCnBhc3N3b3JkPSI2MjRjNGY5MTllOTAzODQyZDNhNjQ4MGI3ZDdlYWI0NTM1MDVmZjk3N2Y1YjI4YjZmNDZiODkiCnRlbmFudC1uYW1lPSJhZG1pbiIKZG9tYWluLW5hbWU9IkRlZmF1bHQiCmNhLWZpbGU9Ii9ldGMvY2VydHMvY2FjZXJ0IgpyZWdpb249IlJlZ2lvbk9uZSIK
+        encoding: base64
+        owner: root
+        path: /etc/kubernetes/cloud.conf
+        permissions: "0600"
+      - content: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUQrVENDQXVHZ0F3SUJBZ0lVV1loNkV1em9yd1hVWTgzWnlIYnppNndVVVZZd0RRWUpLb1pJaHZjTkFRRUwKQlFBd2dZc3hDekFKQmdOVkJBWVRBbFZUTVE0d0RBWURWUVFJREFWVVpYaGhjekVVTUJJR0ExVUVCd3dMVTJGdQpJRUZ1ZEc5dWFXOHhDekFKQmdOVkJBb01Ba2xVTVNFd0h3WURWUVFEREJod2RXSnNhV011YjNCbGJuTjBZV05yCkxXRnBieTV1WlhReEpqQWtCZ05WSFJFTUhVbFFMakU5Y0hWaWJHbGpMbTl3Wlc1emRHRmpheTFoYVc4dWJtVjAKTUI0WERUSXhNRFl3TWpBNE1qRXpPVm9YRFRNeE1EVXpNVEE0TWpFek9Wb3dnWXN4Q3pBSkJnTlZCQVlUQWxWVApNUTR3REFZRFZRUUlEQVZVWlhoaGN6RVVNQklHQTFVRUJ3d0xVMkZ1SUVGdWRHOXVhVzh4Q3pBSkJnTlZCQW9NCkFrbFVNU0V3SHdZRFZRUUREQmh3ZFdKc2FXTXViM0JsYm5OMFlXTnJMV0ZwYnk1dVpYUXhKakFrQmdOVkhSRU0KSFVsUUxqRTljSFZpYkdsakxtOXdaVzV6ZEdGamF5MWhhVzh1Ym1WME1JSUJJakFOQmdrcWhraUc5dzBCQVFFRgpBQU9DQVE4QU1JSUJDZ0tDQVFFQXpDc09FSEdqZlpvczRwQ0VHM2NlM2N1ZVhKb1ZSS2pENHRjV1BBZW51ajROCm1EOFBTanRPZS9hS3lQUzQwa253cEZaWmNnM29lMmNlMFpGeU04b1hIdkxGVzVRQ0dtMGttRGtpajhsUzE4aTAKTlg1TWs3Z1Vqdlc0eWtBNENsUkJZSDl6dGRvRUx4Smxzb01Bb00zMTI5Z1pqMmU2UjdDVWJOZWNuUUQ0a3JHWQpUT1VWUGVQak1rR3djenVBVGg4Y3FsWHhVL3lPNCtSMDNoMklVOUVmOXNXVkxMaTVSaVBLUTJjWWw4WndGczdhCnZ2aEYzeDM4WGRQR2Rvb3NOaTNITWl5S2t3ZE96Y2thOW8wWGZIaUt0RFlhYnk0VEJITmpLdHNCYWV6OGdGZkYKT2ptYUkzTVpoRjFTY1NZWlVhRm5abzdCRFZNNXpNM3cva3RqcHg5c2F3SURBUUFCbzFNd1VUQWRCZ05WSFE0RQpGZ1FVVG5yd2hYenoxK2NsK0o1ZTd6M0krTkJ6aGhFd0h3WURWUjBqQkJnd0ZvQVVUbnJ3aFh6ejErY2wrSjVlCjd6M0krTkJ6aGhFd0R3WURWUjBUQVFIL0JBVXdBd0VCL3pBTkJna3Foa2lHOXcwQkFRc0ZBQU9DQVFFQWQ3ZGYKTEkwRWppUWU2N3c2Y28xYzllclNRM1E3U1BqQVFZKy9yRGJmMnVNWTk5MWIwOEN6TkIvMFlrNVkwMlhxeFMwQgpaM29YWUtOWFdlTGliVnVKR3VsSkV4VXhpQ05nU3FaMDdYT1VoV2hOdlZtSlEwcklFb3JMUzRBT3NtWk8zZFRjCjAvNlZpRTg0M09uZ3lxU3VXZTZHN0Zma3Nyd01iV0t0cWorWTlqbFdCYXNnaVEwUEt1ZzlyUFZ0K2pFbHFJMFMKUzdzRzFnc1lKNmZZaHZIOHFzaDBuSlh2UTlBR3dmbGxFTzBvL0ZDM0Zta2ZIekVrUW5qdDE0ZjgvTmRjc2pxUgpJdEFMVHpIckR2OFBIRVJkRWp4dnpPV3pSTU5DMzNEWlI4UjlLUGFWMlAybXc2QVZLT3Y5ZjFVelJvOTZqSjdhCmdlRFBhOVlJVTBHQXkxRmV6dz09Ci0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0K
+        encoding: base64
+        owner: root
+        path: /etc/certs/cacert
+        permissions: "0600"
+      joinConfiguration:
+        nodeRegistration:
+          kubeletExtraArgs:
+            cloud-config: /etc/kubernetes/cloud.conf
+            cloud-provider: openstack
+          name: '{{ local_hostname }}'
+---
+apiVersion: v1
+data:
+  cacert: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUQrVENDQXVHZ0F3SUJBZ0lVV1loNkV1em9yd1hVWTgzWnlIYnppNndVVVZZd0RRWUpLb1pJaHZjTkFRRUwKQlFBd2dZc3hDekFKQmdOVkJBWVRBbFZUTVE0d0RBWURWUVFJREFWVVpYaGhjekVVTUJJR0ExVUVCd3dMVTJGdQpJRUZ1ZEc5dWFXOHhDekFKQmdOVkJBb01Ba2xVTVNFd0h3WURWUVFEREJod2RXSnNhV011YjNCbGJuTjBZV05yCkxXRnBieTV1WlhReEpqQWtCZ05WSFJFTUhVbFFMakU5Y0hWaWJHbGpMbTl3Wlc1emRHRmpheTFoYVc4dWJtVjAKTUI0WERUSXhNRFl3TWpBNE1qRXpPVm9YRFRNeE1EVXpNVEE0TWpFek9Wb3dnWXN4Q3pBSkJnTlZCQVlUQWxWVApNUTR3REFZRFZRUUlEQVZVWlhoaGN6RVVNQklHQTFVRUJ3d0xVMkZ1SUVGdWRHOXVhVzh4Q3pBSkJnTlZCQW9NCkFrbFVNU0V3SHdZRFZRUUREQmh3ZFdKc2FXTXViM0JsYm5OMFlXTnJMV0ZwYnk1dVpYUXhKakFrQmdOVkhSRU0KSFVsUUxqRTljSFZpYkdsakxtOXdaVzV6ZEdGamF5MWhhVzh1Ym1WME1JSUJJakFOQmdrcWhraUc5dzBCQVFFRgpBQU9DQVE4QU1JSUJDZ0tDQVFFQXpDc09FSEdqZlpvczRwQ0VHM2NlM2N1ZVhKb1ZSS2pENHRjV1BBZW51ajROCm1EOFBTanRPZS9hS3lQUzQwa253cEZaWmNnM29lMmNlMFpGeU04b1hIdkxGVzVRQ0dtMGttRGtpajhsUzE4aTAKTlg1TWs3Z1Vqdlc0eWtBNENsUkJZSDl6dGRvRUx4Smxzb01Bb00zMTI5Z1pqMmU2UjdDVWJOZWNuUUQ0a3JHWQpUT1VWUGVQak1rR3djenVBVGg4Y3FsWHhVL3lPNCtSMDNoMklVOUVmOXNXVkxMaTVSaVBLUTJjWWw4WndGczdhCnZ2aEYzeDM4WGRQR2Rvb3NOaTNITWl5S2t3ZE96Y2thOW8wWGZIaUt0RFlhYnk0VEJITmpLdHNCYWV6OGdGZkYKT2ptYUkzTVpoRjFTY1NZWlVhRm5abzdCRFZNNXpNM3cva3RqcHg5c2F3SURBUUFCbzFNd1VUQWRCZ05WSFE0RQpGZ1FVVG5yd2hYenoxK2NsK0o1ZTd6M0krTkJ6aGhFd0h3WURWUjBqQkJnd0ZvQVVUbnJ3aFh6ejErY2wrSjVlCjd6M0krTkJ6aGhFd0R3WURWUjBUQVFIL0JBVXdBd0VCL3pBTkJna3Foa2lHOXcwQkFRc0ZBQU9DQVFFQWQ3ZGYKTEkwRWppUWU2N3c2Y28xYzllclNRM1E3U1BqQVFZKy9yRGJmMnVNWTk5MWIwOEN6TkIvMFlrNVkwMlhxeFMwQgpaM29YWUtOWFdlTGliVnVKR3VsSkV4VXhpQ05nU3FaMDdYT1VoV2hOdlZtSlEwcklFb3JMUzRBT3NtWk8zZFRjCjAvNlZpRTg0M09uZ3lxU3VXZTZHN0Zma3Nyd01iV0t0cWorWTlqbFdCYXNnaVEwUEt1ZzlyUFZ0K2pFbHFJMFMKUzdzRzFnc1lKNmZZaHZIOHFzaDBuSlh2UTlBR3dmbGxFTzBvL0ZDM0Zta2ZIekVrUW5qdDE0ZjgvTmRjc2pxUgpJdEFMVHpIckR2OFBIRVJkRWp4dnpPV3pSTU5DMzNEWlI4UjlLUGFWMlAybXc2QVZLT3Y5ZjFVelJvOTZqSjdhCmdlRFBhOVlJVTBHQXkxRmV6dz09Ci0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0K
+  clouds.yaml: Y2xvdWRzOgogIGRlZmF1bHQ6CiAgICBhdXRoOgogICAgICBhdXRoX3VybDogaHR0cHM6Ly9wdWJsaWMub3BlbnN0YWNrLWFpby5uZXQ6NTAwMC92MwogICAgICBwcm9qZWN0X25hbWU6IGFkbWluCiAgICAgIHRlbmFudF9uYW1lOiBhZG1pbgogICAgICBwcm9qZWN0X2RvbWFpbl9uYW1lOiBEZWZhdWx0CiAgICAgIHVzZXJuYW1lOiBhZG1pbgogICAgICBwYXNzd29yZDogNjI0YzRmOTE5ZTkwMzg0MmQzYTY0ODBiN2Q3ZWFiNDUzNTA1ZmY5NzdmNWIyOGI2ZjQ2Yjg5CiAgICAgIHVzZXJfZG9tYWluX25hbWU6IERlZmF1bHQKICAgIHJlZ2lvbl9uYW1lOiBSZWdpb25PbmUKICAgIGludGVyZmFjZTogcHVibGljCiAgICBjYWNlcnQ6IC91c3IvbG9jYWwvc2hhcmUvY2EtY2VydGlmaWNhdGVzL2hhcHJveHkuY3J0Cg==
+kind: Secret
+metadata:
+  labels:
+    clusterctl.cluster.x-k8s.io/move: "true"
+  name: capi-quickstart-cloud-config
+  namespace: default
