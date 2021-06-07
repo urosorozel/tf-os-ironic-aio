@@ -19,7 +19,7 @@ curl -L -# https://github.com/argoproj/argo-cd/releases/download/v2.0.3/argocd-l
 chmod +x argocd
 sudo mv argocd /usr/local/bin/
 #argocd app create guestbook --repo https://github.com/argoproj/argocd-example-apps.git --path guestbook --dest-server https://kubernetes.default.svc --dest-namespace default
-argocd completion bash | sudo tee /etc/bash_completion.d/argoocd
+#argocd completion bash | sudo tee /etc/bash_completion.d/argoocd
 
 
 # Proxy
