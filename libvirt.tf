@@ -172,7 +172,7 @@ resource "libvirt_domain" "ironic_nodes" {
   #firmware = "/usr/share/OVMF/OVMF_CODE.fd"
   network_interface {
     network_name = libvirt_network.openstack_aio_ironic_network.name
-    mac = "${format("52:54:00:fa:fa:%02d", count.index + 1)}"
+    mac = "${format("52:54:00:fa:fa:%x", count.index + 1)}"
     wait_for_lease = false
   }
   disk {

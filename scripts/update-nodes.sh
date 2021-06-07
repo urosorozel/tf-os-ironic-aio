@@ -8,7 +8,8 @@ for node in $(openstack baremetal node list --provision-state enroll -f value -c
 	mac=$(openstack baremetal port list --node $node -f value -c Address)
 	echo "mac: $mac"
 	macname=${mac//:/_}
-	maclast=${mac: -1}
+	maclast=${mac: -2}
+	maclast=$((16#${maclast}))
 	maclast=$( expr $maclast + $IP_OFFSET)
 	openstack baremetal node set --name QEMU_${macname} --deploy-interface=${DEPLOY_INTERFACE} --driver-info ipmi_address=10.200.0.${maclast} $node
 	openstack baremetal node manage QEMU_${macname}
