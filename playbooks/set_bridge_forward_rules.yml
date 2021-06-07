@@ -10,12 +10,13 @@
         source: 172.20.200.0/22
         destination: 10.200.0.100/24
         rule_num: 1
-      - name: "Allow traffic 169.254.0.0/16 between {{global_ironic_bridge}} and {{global_host_bridge}}"
-        in_interface: "{{global_ironic_bridge}}"
-        out_interface: "{{global_host_bridge}}"
-        source: 169.254.0.0/16
-        destination: 10.200.0.100/24
-        rule_num: 2
+
+        #      - name: "Allow traffic 169.254.0.0/16 between {{global_ironic_bridge}} and {{global_host_bridge}}"
+        #        in_interface: "{{global_ironic_bridge}}"
+        #        out_interface: "{{global_host_bridge}}"
+        #        source: 169.254.0.0/16
+        #        destination: 10.200.0.100/24
+        #        rule_num: 2
   tasks:
 
   - name: Add rules
@@ -33,4 +34,7 @@
     tags:
       - iptables
 
- 
+# sudo iptables -I FORWARD 1 -s 172.18.0.0/16 -d 10.200.0.0/24 -o aio-network -m comment --comment "Allow traffic forward between docker and aio-network" -j ACCEPT
+# sudo iptables -I FORWARD 1 -s 172.18.0.0/16 -d 172.20.200.0/22 -o aio-ironic -m comment --comment "Allow traffic forward between docker and aio-ironic" -j ACCEPT
+# sudo iptables -I FORWARD 1 -s 172.20.200.0/22 -d 10.200.0.0/24 -i aio-ironic -o aio-network -m comment --comment "Allow traffic forward between aio-ironic and aio-network" -j ACCEPT
+# sudo iptables -I LIBVIRT_PRT 1 -t nat -s 172.20.200.0/22 -d 169.254.169.254/32 -m comment --comment "Dont masq source address for metadata service" -j RETURN

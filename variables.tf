@@ -86,7 +86,7 @@ variable "ironic_node_prefix" {
 
 variable "ironic_node_count" {
     description = "The number of ironic nodes."
-    default  = "6"
+    default  = "9"
 }
 
 variable "ironic_node_cpu" {

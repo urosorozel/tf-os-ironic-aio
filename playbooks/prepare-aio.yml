@@ -7,6 +7,24 @@
         name: ironic-inspector-conductor
         state: started
 
+    - name: Fix Ironic network MTU
+      command: openstack --os-cloud default network set --mtu 1500 ironic-network --insecure
+
+    - name: Enable force_config_drive
+      ini_file:
+        dest: /etc/nova/nova.conf
+        section: DEFAULT
+        option: force_config_drive
+        value: True
+
+    - name: Restart nova
+      service:
+        name: "{{ item }}"
+        state: restarted
+      with_items:
+        - nova-compute
+        - nova-conductor
+
     - name: Copy haproxy self-signed cert
       fetch:
         src: /etc/ssl/certs/haproxy.cert
