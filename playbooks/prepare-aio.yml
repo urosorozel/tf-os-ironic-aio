@@ -71,6 +71,13 @@
           export OS_CLIENT_CONFIG_FILE={{ansible_env.PWD}}/clouds.yaml
       delegate_to: localhost
 
+    - name: Add AIO to hosts
+      lineinfile:
+        dest: /etc/hosts
+        regexp: ".*public.openstack-aio.net"
+        line: "10.200.0.100 public.openstack-aio.net"
+      delegate_to: localhost
+
     - name: Reset all ironic nodes
       shell: |
         virsh list --name|grep ironic|xargs -Ixx virsh reset xx

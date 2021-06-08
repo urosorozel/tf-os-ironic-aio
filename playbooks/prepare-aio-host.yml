@@ -46,6 +46,7 @@
       apt:
         name: "{{ item }}"
       with_items: "{{ packages }}"
+      become: yes
 
     - name: Disable qemu security driver
       lineinfile:
@@ -54,6 +55,28 @@
         regexp: 'security_driver'
       become: yes
 
+    - name: Restart libvirtd
+      service:
+        name: libvirtd
+        state: restarted
+      become: yes
+
+    - name: Install Openstack clients
+      pip:
+        name: "{{ item }}"
+        virtualenv: "{{ ansible_env.HOME }}/ansible"
+      with_items:
+        - python-openstackclient
+        - python-ironic-inspector-client
+        - python-novaclient
+        - python-ironicclient
+
+    - name: Copy AIO RSA key
+      copy:
+         src: ../files/id_rsa-aio
+         dest: "{{ ansible_env.HOME }}/.ssh/id_rsa-aio"
+         mode: '0400'
+
     - name: Add user to libvirt and docker group
       user:
         name: ubuntu
@@ -61,6 +84,7 @@
           - docker
           - libvirt
         append: yes
+      become: yes
 
     - name: Download Terraform
       get_url:
@@ -95,6 +119,7 @@
       shell: |
         mv {{ ansible_env.HOME }}/terraform /usr/local/bin/
       when: decomress.changed
+      become: yes
 
     - name: Download k8s utils
       get_url:

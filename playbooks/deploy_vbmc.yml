@@ -6,6 +6,7 @@
       pip:
         name: virtualbmc
         virtualenv: /opt/vbmc/
+        virtualenv_command: python3 -m venv
       become: yes
 
     - name: Create VirtualBMC directories
